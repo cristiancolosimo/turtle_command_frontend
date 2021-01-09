@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense,useEffect } from 'react';
 import { Canvas, MeshProps, useFrame } from 'react-three-fiber'
 import type { Mesh } from 'three'
 import { makeStyles, Theme, createStyles } from '@material-ui/core/styles';
@@ -23,7 +23,7 @@ const Block = (props:any)=>{
 }
 
 const WorldVisualization = (props:any)=>{
- 
+  
   return (<Canvas style={{height:"100%",minHeight:"500px"}} >
     
   <ambientLight />
@@ -32,12 +32,19 @@ const WorldVisualization = (props:any)=>{
   <Sky/>
   <Suspense fallback={null}>
 
- <TurtleModel position={props.position} scale={[0.4,0.4,0.4]}/>
- {Array(10).fill(0).map((el,k)=>{
-   return <Block key={k} position={[k,0,0]} />;
+ <TurtleModel {...props}  />
+ {Object.values(props.world).filter((value:any)=>value.name !== "air")
+.map((el:any,k:number)=>{
+   return <Block key={k} position={[el.position.z,el.position.y,el.position.x]} />;
  })}
   </Suspense> 
 </Canvas>)
+}
+
+interface Block{
+  meta:number,
+  name:string,
+  position:{x:number,y:number,z:number, DIRECTION:string}
 }
 
 interface Item{
@@ -49,6 +56,7 @@ interface Slot{
   data:undefined|Item,
   slot:number
 }
+
 interface state{
   
   turtle:Turtle,
@@ -56,7 +64,8 @@ interface state{
   inputText:string,
   inventory:Array<Slot>,
   selected:number,
-  position:[number,number,number]
+  position:{x:number,y:number,z:number, DIRECTION:string},
+  world:any
 }
 
 class App extends React.Component<any,state>{
@@ -69,7 +78,8 @@ class App extends React.Component<any,state>{
       inputText:"",
       inventory:Array(16).fill(0),
       selected:1,
-      position:[0,300,0]
+      position:{x:0,y:0,z:0,DIRECTION:"FRONT"},
+      world:{}
     }
   }
   readPosition(){
@@ -88,6 +98,22 @@ class App extends React.Component<any,state>{
     this.state.turtle.ws.onmessage = (messagge) => {
       const parsed = JSON.parse(messagge.data);
       console.log(JSON.parse(messagge.data))
+      if(parsed.type === "update" && parsed.datatype ==="location"){
+        this.state.turtle.position = parsed.data;
+        this.setState({
+          position:parsed.data
+        })
+      }
+      if(parsed.type === "update" && parsed.datatype ==="inspectBlock"){
+        let tempworld = this.state.world;
+        tempworld[`X:${parsed.data.front.position.x},Y:${parsed.data.front.position.y},Z:${parsed.data.front.position.z}`] = parsed.data.front
+        tempworld[`X:${parsed.data.top.position.x},Y:${parsed.data.top.position.y},Z:${parsed.data.top.position.z}`] = parsed.data.top
+        tempworld[`X:${parsed.data.bottom.position.x},Y:${parsed.data.bottom.position.y},Z:${parsed.data.bottom.position.z}`] = parsed.data.bottom
+        console.log(tempworld)
+        this.setState({
+          world:tempworld
+        })
+      }
       if(parsed.type === "update" && parsed.datatype ==="inventory"){
         this.state.turtle.invetory = parsed.data;
         this.setState({
@@ -118,6 +144,8 @@ class App extends React.Component<any,state>{
     <button onClick={()=>turtle.back()}>Indientro</button>
     <button onClick={()=>turtle.up()}>Sopra</button>
     <button onClick={()=>turtle.down()}>Sotto</button>
+    <button onClick={()=>turtle.turnLeft()}>Gira a sinistra</button>
+    <button onClick={()=>turtle.turnRight()}>Gira a destra</button>
     <button onClick={()=>turtle.inspect()}>Detect block</button>
     <button onClick={()=>turtle.getInventory()}>Inventario</button>
     <button onClick={()=>this.readPosition()}>Posizione</button>
@@ -130,7 +158,7 @@ class App extends React.Component<any,state>{
             </Tooltip>);
         })}
       </div>
-      <WorldVisualization position={this.state.position}/>
+      <WorldVisualization position={this.state.position} world={this.state.world}/>
     </>)
   }
 }

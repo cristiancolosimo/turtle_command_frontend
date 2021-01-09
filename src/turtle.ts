@@ -21,7 +21,7 @@ export class Turtle {
     invetory:Array<Slot> = Array(16).fill(0);
     name:string = "";
     turtleID:number=0;
-    position:[number,number,number]=[0,0,0];
+    position:{x:number,y:number,z:number, DIRECTION:string}={x:0,y:0,z:0,DIRECTION:"FRONT"}
     
     constructor(ws: WebSocket) {
         this.ws = ws;
@@ -43,7 +43,7 @@ export class Turtle {
     }
     async exec <T> (command: string): Promise <T> {
         return new Promise(r => {
-            return;
+            
             this.ws.send(JSON.stringify({
                 type: "eval",
                 command: command,
@@ -65,26 +65,26 @@ export class Turtle {
         return await this.exec<boolean>(`inspectAll()`);
     }
     async forward() {
-        this.position[0]++;
-        return await this.exec<boolean>(`turtle.forward()`);
+        
+        return await this.exec<boolean>(`move(${Direction.FRONT})`);
     }
     async back() {
-        this.position[0]--;
-        return await this.exec<boolean>(`turtle.back()`);
+        
+        return await this.exec<boolean>(`move(${Direction.BACK})`);
     }
     async turnLeft() {
-        return await this.exec<boolean>(`turtle.turnLeft()`);
+        return await this.exec<boolean>(`turn(${Direction.LEFT})`);
     }
     async turnRight() {
-        return await this.exec<boolean>(`turtle.turnRight()`);
+        return await this.exec<boolean>(`turn(${Direction.RIGHT})`);
     }
     async up() {
-        this.position[1]++;
-        return await this.exec<boolean>(`turtle.up()`);
+        
+        return await this.exec<boolean>(`move(${Direction.UP})`);
     }
     async down() {
-        this.position[1]--;
-        return await this.exec<boolean>(`turtle.down()`);
+        
+        return await this.exec<boolean>(`move(${Direction.DOWN})`);
     }
     async refuel() {
         await this.exec<boolean>(`turtle.refuel()`);
